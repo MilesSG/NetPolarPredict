@@ -6,20 +6,30 @@
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-
   color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  width: 100%;
+}
 
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+html {
+  background-color: #f8fafc;
+  color: #1e293b;
+  width: 100%;
+  overflow-x: hidden;
+}
+
+html.dark {
+  background-color: #1e293b;
+  color: #f8fafc;
 }
 
 @layer base {
   body {
     @apply bg-gray-100 dark:bg-dark text-gray-800 dark:text-gray-100;
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    width: 100%;
+    overflow-x: hidden;
   }
 }
 
@@ -41,6 +51,118 @@
   }
 }
 
+/* Element Plus 暗黑模式适配 */
+.dark .el-card {
+  --el-card-bg-color: #1e293b !important;
+  color: #f8fafc !important;
+}
+
+.dark .el-button--primary {
+  --el-button-bg-color: #3659E3 !important;
+  --el-button-border-color: #3659E3 !important;
+}
+
+.dark .el-button--success {
+  --el-button-bg-color: #67C23A !important;
+  --el-button-border-color: #67C23A !important;
+}
+
+.dark .el-button--default {
+  --el-button-bg-color: #334155 !important;
+  --el-button-border-color: #334155 !important;
+  --el-button-text-color: #f8fafc !important;
+}
+
+.dark .el-table {
+  --el-table-bg-color: #334155 !important;
+  --el-table-tr-bg-color: #334155 !important;
+  --el-table-expanded-cell-bg-color: #334155 !important;
+  --el-table-header-bg-color: #1e293b !important;
+  --el-table-header-text-color: #f8fafc !important;
+  --el-table-text-color: #f8fafc !important;
+  --el-table-border-color: #475569 !important;
+}
+
+.dark .el-table th.el-table__cell {
+  background-color: #1e293b !important;
+}
+
+.dark .el-table .el-table__cell {
+  border-bottom: 1px solid #475569 !important;
+}
+
+.dark .el-input {
+  --el-input-bg-color: #334155 !important;
+  --el-input-border-color: #475569 !important;
+  --el-input-text-color: #f8fafc !important;
+  --el-input-placeholder-color: #94a3b8 !important;
+}
+
+.dark .el-select {
+  --el-select-input-color: #f8fafc !important;
+  --el-select-multiple-input-color: #f8fafc !important;
+}
+
+.dark .el-pagination {
+  --el-pagination-button-bg-color: #334155 !important;
+  --el-pagination-button-color: #f8fafc !important;
+  --el-pagination-button-disabled-color: #64748b !important;
+}
+
+/* 修复重叠和布局问题 */
+#app {
+  max-width: 100% !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 保证主容器100%宽度 */
+.el-container {
+  width: 100%;
+}
+
+.el-main {
+  overflow-x: hidden !important;
+  width: 100% !important;
+}
+
+/* 确保所有卡片和图表容器使用最大宽度 */
+.el-card {
+  width: 100% !important;
+}
+
+.el-card__body {
+  width: 100% !important;
+}
+
+/* 修复按钮内容缺失问题 */
+.el-button .el-icon {
+  margin-right: 4px;
+}
+
+/* 全局修复按钮文本显示问题 */
+.el-button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.el-button span {
+  display: inline-block !important;
+  position: relative !important;
+  z-index: 2 !important;
+  color: inherit !important;
+  pointer-events: none;
+}
+
+.el-table__fixed-right .el-button {
+  min-width: 70px;
+}
+
 a {
   font-weight: 500;
   color: #646cff;
@@ -51,23 +173,14 @@ a:hover {
 }
 
 body {
-  margin: 0;
   display: flex;
   place-items: center;
   min-width: 320px;
-  min-height: 100vh;
 }
 
 h1 {
   font-size: 3.2em;
   line-height: 1.1;
-}
-
-#app {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
 }
 
 .logo {
@@ -117,4 +230,37 @@ button:focus-visible {
   button {
     background-color: #f9f9f9;
   }
+}
+
+/* 确保图表容器有合适的尺寸 */
+.chart-container {
+  height: 350px !important;
+  width: 100% !important;
+  min-height: 350px !important;
+  display: block !important;
+  visibility: visible !important;
+}
+
+/* 修复预测页面样式 */
+.prediction-trend-container {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 auto !important;
+  padding: 1rem !important;
+}
+
+/* 为echarts提供恰当的空间 */
+.chart-card .el-card__body {
+  height: 380px !important;
+  padding: 0 !important;
+  width: 100% !important;
+}
+
+/* 确保所有视图使用100%宽度 */
+.dashboard,
+.event-list,
+.event-detail,
+.prediction-trend,
+.real-time-monitor {
+  width: 100% !important;
 }

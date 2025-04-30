@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
+import { Search, RefreshRight, Plus, View, TrendCharts } from '@element-plus/icons-vue'
 
 const router = useRouter()
 
@@ -159,13 +161,40 @@ function viewEventDetail(eventId: number) {
   router.push(`/events/${eventId}`)
 }
 
+// 查看预测趋势
+function viewPredictionTrend(eventId: number) {
+  router.push({
+    path: '/prediction',
+    query: { eventId: eventId.toString() }
+  })
+}
+
+// 添加新事件
+function addNewEvent() {
+  ElMessage.success('添加事件功能将在未来版本推出')
+}
+
+// 搜索事件
+function searchEvents() {
+  ElMessage.info('正在搜索匹配的事件...')
+}
+
+// 重置搜索
+function resetSearch() {
+  searchForm.keyword = ''
+  searchForm.category = ''
+  searchForm.dateRange = null
+  searchForm.polarizationLevel = [0, 10]
+  ElMessage.info('已重置搜索条件')
+}
+
 // 分页
 const currentPage = ref(1)
 const pageSize = ref(10)
 </script>
 
 <template>
-  <div class="events-list">
+  <div class="events-list-container w-full">
     <!-- 搜索区域 -->
     <el-card class="mb-6 search-card" :class="{ 'dark:bg-dark-light': true }">
       <el-form :model="searchForm" label-width="100px" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -196,8 +225,12 @@ const pageSize = ref(10)
       </el-form>
       
       <div class="flex justify-center mt-4">
-        <el-button type="primary" class="w-32 mr-4">搜索</el-button>
-        <el-button class="w-32">重置</el-button>
+        <el-button type="primary" class="w-32 mr-4" @click="searchEvents">
+          <el-icon class="mr-1"><Search /></el-icon>搜索
+        </el-button>
+        <el-button class="w-32" @click="resetSearch">
+          <el-icon class="mr-1"><RefreshRight /></el-icon>重置
+        </el-button>
       </div>
     </el-card>
     
@@ -206,7 +239,9 @@ const pageSize = ref(10)
       <template #header>
         <div class="flex justify-between items-center">
           <span class="text-lg font-bold">热点事件列表</span>
-          <el-button type="primary">添加事件</el-button>
+          <el-button type="primary" @click="addNewEvent">
+            <el-icon class="mr-1"><Plus /></el-icon>添加事件
+          </el-button>
         </div>
       </template>
       
@@ -253,8 +288,12 @@ const pageSize = ref(10)
         
         <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
-            <el-button type="primary" size="small" @click="viewEventDetail(row.id)">详情分析</el-button>
-            <el-button type="success" size="small">预测趋势</el-button>
+            <el-button type="primary" size="small" @click="viewEventDetail(row.id)">
+              <el-icon class="mr-1"><View /></el-icon>详情
+            </el-button>
+            <el-button type="success" size="small" @click="viewPredictionTrend(row.id)">
+              <el-icon class="mr-1"><TrendCharts /></el-icon>预测
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -275,7 +314,60 @@ const pageSize = ref(10)
 </template>
 
 <style scoped>
+.events-list-container {
+  width: 100%;
+}
+
 .search-card {
   transition: all 0.3s;
+}
+
+.el-button .el-icon {
+  margin-right: 4px;
+}
+
+/* 确保操作按钮中的文本可见 */
+.el-table-column--fixed-right .el-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.el-table-column--fixed-right .el-button .el-icon {
+  margin-right: 4px;
+}
+
+.el-table-column--fixed-right .el-button span {
+  color: inherit;
+  display: inline-block;
+}
+
+/* 增强操作列按钮样式，解决文本不显示问题 */
+:deep(.el-table .el-button) {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 70px;
+  margin: 0 2px;
+}
+
+:deep(.el-table .el-button span) {
+  display: inline-block !important;
+  color: inherit !important;
+  position: relative !important;
+  z-index: 2;
+  margin-left: 2px;
+}
+
+:deep(.el-button--primary),
+:deep(.el-button--success) {
+  font-weight: normal !important;
+  white-space: nowrap;
+}
+
+/* 修复暗模式下的按钮文本颜色 */
+.dark :deep(.el-button--primary) span,
+.dark :deep(.el-button--success) span {
+  color: #ffffff !important;
 }
 </style> 

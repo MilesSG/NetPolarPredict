@@ -2,9 +2,17 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import * as echarts from 'echarts'
+// 引入词云图扩展
+import 'echarts-wordcloud'
+import { DataAnalysis, TrendCharts, AlarmClock, Share, View, Pointer } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const eventId = computed(() => Number(route.params.id))
+
+// 深度分析模态框
+const analysisDialogVisible = ref(false)
+const analysisLoading = ref(false)
+const analysisResult = ref('')
 
 // 事件详情数据
 const eventDetail = ref({
@@ -19,6 +27,54 @@ const eventDetail = ref({
   description: '某科技公司CEO被曝出涉嫌内幕交易，引发公众对企业道德和监管制度的激烈讨论。相关话题在社交媒体上迅速发酵，形成明显的群体极化现象，支持者认为这是商业竞争中的正常行为被过度解读，反对者则严厉谴责这种行为并呼吁加强监管。',
   keywords: ['科技公司', 'CEO', '违规交易', '企业道德', '监管']
 })
+
+// 深度分析函数
+function handleDeepAnalysis() {
+  analysisDialogVisible.value = true
+  analysisLoading.value = true
+  
+  // 模拟API请求延迟
+  setTimeout(() => {
+    analysisLoading.value = false
+    analysisResult.value = `
+      <h3 class="text-xl font-bold mb-4">事件深度分析报告</h3>
+      
+      <div class="mb-4">
+        <p class="font-bold">事件概述：</p>
+        <p>某科技公司CEO涉嫌违规交易事件在社交媒体上引起广泛讨论，形成明显的群体极化现象。</p>
+      </div>
+      
+      <div class="mb-4">
+        <p class="font-bold">极化指数分析：</p>
+        <p>该事件极化指数为8.7（满分10分），属于高度极化事件。主要表现为支持与反对意见明显对立，缺乏中间立场的讨论。</p>
+      </div>
+      
+      <div class="mb-4">
+        <p class="font-bold">极化原因：</p>
+        <ul class="list-disc pl-5">
+          <li>信息不对称：公众对内幕交易相关法规了解有限</li>
+          <li>价值观冲突：对商业道德与个人利益的不同理解</li>
+          <li>回音室效应：社交媒体算法推荐相似观点，加剧立场固化</li>
+          <li>意见领袖影响：知名财经分析师对事件的截然不同解读</li>
+        </ul>
+      </div>
+      
+      <div class="mb-4">
+        <p class="font-bold">发展趋势预测：</p>
+        <p>根据历史相似案例分析，该事件极化程度预计将在未来3-5天达到峰值，随后随着官方调查结果公布可能出现观点收敛。</p>
+      </div>
+      
+      <div>
+        <p class="font-bold">干预建议：</p>
+        <ul class="list-disc pl-5">
+          <li>发布权威解读，澄清事实与法规边界</li>
+          <li>鼓励多元观点表达，打破信息茧房</li>
+          <li>引导理性讨论，降低情绪化表达</li>
+        </ul>
+      </div>
+    `
+  }, 1500)
+}
 
 // 评论数据
 const commentsData = ref([
@@ -261,7 +317,6 @@ function initCommentNetworkChart() {
       }
     ],
     animationDuration: 1500,
-    animationEasingUpdate: 'quinticInOut',
     series: [
       {
         name: '评论网络',
@@ -386,7 +441,7 @@ function getSentimentColor(sentiment: number): string {
 </script>
 
 <template>
-  <div class="event-detail">
+  <div class="event-detail-container w-full">
     <!-- 事件概况 -->
     <el-card class="mb-6" :class="{ 'dark:bg-dark-light': true }">
       <div class="flex flex-col lg:flex-row justify-between">
@@ -426,17 +481,17 @@ function getSentimentColor(sentiment: number): string {
         </div>
         
         <div class="action-panel mt-4 lg:mt-0 lg:ml-6 flex flex-col lg:flex-row lg:flex-col justify-center gap-3">
-          <el-button type="primary" size="large" icon="DataAnalysis">
-            深度分析
+          <el-button type="primary" size="large" @click="handleDeepAnalysis">
+            <el-icon><DataAnalysis /></el-icon>深度分析
           </el-button>
-          <el-button type="success" size="large" icon="TrendCharts">
-            预测趋势
+          <el-button type="success" size="large">
+            <el-icon><TrendCharts /></el-icon>预测趋势
           </el-button>
-          <el-button type="warning" size="large" icon="AlarmClock">
-            设置监控
+          <el-button type="warning" size="large">
+            <el-icon><AlarmClock /></el-icon>设置监控
           </el-button>
-          <el-button size="large" icon="Share">
-            分享
+          <el-button size="large">
+            <el-icon><Share /></el-icon>分享
           </el-button>
         </div>
       </div>
@@ -470,7 +525,9 @@ function getSentimentColor(sentiment: number): string {
       <template #header>
         <div class="flex justify-between items-center">
           <span class="text-lg font-bold">热门评论</span>
-          <el-button type="primary" text>查看全部评论</el-button>
+          <el-button type="primary" text>
+            <el-icon><View /></el-icon>查看全部评论
+          </el-button>
         </div>
       </template>
       
@@ -491,21 +548,72 @@ function getSentimentColor(sentiment: number): string {
           </div>
           <div class="comment-content mb-2">{{ comment.content }}</div>
           <div class="flex items-center text-gray-500 dark:text-gray-400 text-sm">
-            <el-icon><ThumbUp /></el-icon>
-            <span class="ml-1">{{ comment.likes }}</span>
+            <el-icon class="mr-1"><Pointer /></el-icon>
+            <span>{{ comment.likes }}</span>
           </div>
         </div>
       </div>
     </el-card>
+
+    <!-- 深度分析模态框 -->
+    <el-dialog
+      v-model="analysisDialogVisible"
+      title="事件深度分析"
+      width="650px"
+      :destroy-on-close="true"
+      class="analysis-dialog"
+    >
+      <div v-if="analysisLoading" class="flex justify-center items-center py-10">
+        <el-loading :fullscreen="false" />
+        <div class="mt-3 text-center text-gray-600">分析中，请稍候...</div>
+      </div>
+      <div v-else class="analysis-content" v-html="analysisResult"></div>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="analysisDialogVisible = false">关闭</el-button>
+          <el-button type="primary" @click="analysisDialogVisible = false">
+            导出报告
+          </el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <style scoped>
+.event-detail-container {
+  width: 100%;
+}
+
 .chart-container {
   height: 350px;
 }
 
 .action-panel {
   min-width: 160px;
+}
+
+/* 修复按钮图标间距 */
+.el-button .el-icon {
+  margin-right: 4px;
+}
+
+/* 深度分析模态框样式 */
+.analysis-dialog {
+  max-width: 90vw;
+}
+
+.analysis-content {
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 0 10px;
+}
+
+:deep(.analysis-content ul) {
+  margin-bottom: 10px;
+}
+
+:deep(.analysis-content li) {
+  margin-bottom: 5px;
 }
 </style> 

@@ -1,6 +1,13 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, watch, nextTick, onUnmounted } from 'vue'
+import { useRoute } from 'vue-router'
 import * as echarts from 'echarts'
+import { ElMessage } from 'element-plus'
+
+// 添加调试日志
+console.log('PredictionTrend组件被加载')
+
+const route = useRoute()
 
 // 预测模型选项
 const modelOptions = [
@@ -31,6 +38,17 @@ const eventOptions = [
   { value: '5', label: '环保抗议活动在全国蔓延' }
 ]
 
+// 从URL参数获取事件ID
+watch(() => route.query.eventId, (newEventId) => {
+  if (newEventId) {
+    predictionSettings.eventId = newEventId as string
+    // 如果已经加载了页面，可以触发预测
+    if (predictionChart) {
+      runPrediction()
+    }
+  }
+}, { immediate: true })
+
 // 图表实例
 let predictionChart: echarts.ECharts | null = null
 let factorsChart: echarts.ECharts | null = null
@@ -59,25 +77,56 @@ const predictionResult = reactive({
 })
 
 onMounted(() => {
-  // 初始化图表
-  initPredictionChart()
-  initFactorsChart()
-  initUncertaintyChart()
-  initComparativeChart()
+  console.log('PredictionTrend组件已挂载')
+  
+  // 给DOM一点时间渲染
+  setTimeout(() => {
+    console.log('开始初始化图表')
+    try {
+      initPredictionChart()
+      initFactorsChart()
+      initUncertaintyChart()
+      initComparativeChart()
+      console.log('图表初始化完成')
+    } catch (error) {
+      console.error('图表初始化失败:', error)
+    }
+    
+    // 如果URL中有事件ID，自动运行预测
+    if (route.query.eventId) {
+      console.log('检测到事件ID:', route.query.eventId)
+      predictionSettings.eventId = route.query.eventId as string
+      runPrediction()
+    }
+  }, 300)
   
   // 监听窗口大小变化
-  window.addEventListener('resize', () => {
-    predictionChart?.resize()
-    factorsChart?.resize()
-    uncertaintyChart?.resize()
-    comparativeChart?.resize()
-  })
+  window.addEventListener('resize', handleResize)
 })
+
+// 单独的resize处理函数
+function handleResize() {
+  console.log('窗口大小改变，重新调整图表大小')
+  if (predictionChart) predictionChart.resize()
+  if (factorsChart) factorsChart.resize()
+  if (uncertaintyChart) uncertaintyChart.resize()
+  if (comparativeChart) comparativeChart.resize()
+}
 
 // 初始化预测趋势图
 function initPredictionChart() {
+  console.log('初始化预测趋势图')
   const chartDom = document.getElementById('prediction-chart')
-  if (!chartDom) return
+  if (!chartDom) {
+    console.error('找不到prediction-chart元素')
+    return
+  }
+  
+  console.log('预测图表DOM元素尺寸:', chartDom.offsetWidth, chartDom.offsetHeight)
+  
+  if (predictionChart) {
+    predictionChart.dispose()
+  }
   
   predictionChart = echarts.init(chartDom)
   
@@ -232,13 +281,31 @@ function initPredictionChart() {
     }
   }
   
-  predictionChart.setOption(option)
+  try {
+    predictionChart.setOption(option)
+    console.log('预测图表设置选项成功')
+    setTimeout(() => {
+      if (predictionChart) {
+        predictionChart.resize()
+        console.log('预测图表调整大小完成')
+      }
+    }, 200)
+  } catch (error) {
+    console.error('设置预测图表选项失败:', error)
+  }
 }
 
 // 初始化关键因素图
 function initFactorsChart() {
   const chartDom = document.getElementById('factors-chart')
-  if (!chartDom) return
+  if (!chartDom) {
+    console.error('找不到factors-chart元素')
+    return
+  }
+  
+  if (factorsChart) {
+    factorsChart.dispose()
+  }
   
   factorsChart = echarts.init(chartDom)
   
@@ -276,12 +343,22 @@ function initFactorsChart() {
   }
   
   factorsChart.setOption(option)
+  setTimeout(() => {
+    factorsChart.resize()
+  }, 200)
 }
 
 // 初始化不确定性分析图
 function initUncertaintyChart() {
   const chartDom = document.getElementById('uncertainty-chart')
-  if (!chartDom) return
+  if (!chartDom) {
+    console.error('找不到uncertainty-chart元素')
+    return
+  }
+  
+  if (uncertaintyChart) {
+    uncertaintyChart.dispose()
+  }
   
   uncertaintyChart = echarts.init(chartDom)
   
@@ -330,12 +407,22 @@ function initUncertaintyChart() {
   }
   
   uncertaintyChart.setOption(option)
+  setTimeout(() => {
+    uncertaintyChart.resize()
+  }, 200)
 }
 
 // 初始化比较分析图
 function initComparativeChart() {
   const chartDom = document.getElementById('comparative-chart')
-  if (!chartDom) return
+  if (!chartDom) {
+    console.error('找不到comparative-chart元素')
+    return
+  }
+  
+  if (comparativeChart) {
+    comparativeChart.dispose()
+  }
   
   comparativeChart = echarts.init(chartDom)
   
@@ -400,34 +487,35 @@ function initComparativeChart() {
   }
   
   comparativeChart.setOption(option)
+  setTimeout(() => {
+    comparativeChart.resize()
+  }, 200)
 }
 
 // 运行预测
 function runPrediction() {
+  if (!predictionSettings.eventId) {
+    // 如果没有选择事件，显示提示
+    ElMessage.warning('请先选择要预测的事件')
+    return
+  }
+  
   isPredicting.value = true
-  predictionProgress.value = 0
   predictionComplete.value = false
+  predictionProgress.value = 0
   
   // 模拟预测过程
-  const totalSteps = 5
-  let currentStep = 0
-  
   const interval = setInterval(() => {
-    currentStep++
-    predictionProgress.value = Math.round((currentStep / totalSteps) * 100)
-    
-    if (currentStep >= totalSteps) {
+    predictionProgress.value += 10
+    if (predictionProgress.value >= 100) {
       clearInterval(interval)
       isPredicting.value = false
       predictionComplete.value = true
       
-      // 重新初始化图表以显示预测结果
-      initPredictionChart()
-      initFactorsChart()
-      initUncertaintyChart()
-      initComparativeChart()
+      // 更新图表数据
+      updateCharts()
     }
-  }, 800)
+  }, 300)
 }
 
 // 获取趋势标签
@@ -443,211 +531,281 @@ function getTrendLabel(trend: string): string {
       return '未知'
   }
 }
+
+// 更新图表数据
+function updateCharts() {
+  // 延迟一点执行，确保DOM已经渲染
+  setTimeout(() => {
+    // 重新初始化图表以显示预测结果
+    initPredictionChart()
+    initFactorsChart()
+    initUncertaintyChart()
+    initComparativeChart()
+  }, 50)
+}
+
+// 组件销毁时清理图表实例
+onUnmounted(() => {
+  console.log('PredictionTrend组件将卸载，清理资源')
+  window.removeEventListener('resize', handleResize)
+  
+  if (predictionChart) {
+    predictionChart.dispose()
+    predictionChart = null
+  }
+  if (factorsChart) {
+    factorsChart.dispose()
+    factorsChart = null
+  }
+  if (uncertaintyChart) {
+    uncertaintyChart.dispose()
+    uncertaintyChart = null
+  }
+  if (comparativeChart) {
+    comparativeChart.dispose()
+    comparativeChart = null
+  }
+})
 </script>
 
 <template>
-  <div class="prediction-trend">
-    <!-- 预测设置区域 -->
-    <el-card class="mb-6 settings-card" :class="{ 'dark:bg-dark-light': true }">
-      <template #header>
-        <div class="flex justify-between items-center">
-          <span class="text-lg font-bold">极化趋势预测配置</span>
-          <div class="flex items-center">
-            <span class="mr-2">预测模型:</span>
-            <el-select v-model="currentModel" class="w-60">
+  <div class="prediction-trend-container w-full">
+    <div class="prediction-trend">
+      <!-- 预测设置区域 -->
+      <el-card class="mb-6 settings-card" :class="{ 'dark:bg-dark-light': true }">
+        <template #header>
+          <div class="flex justify-between items-center">
+            <span class="text-lg font-bold">极化趋势预测配置</span>
+            <div class="flex items-center">
+              <span class="mr-2">预测模型:</span>
+              <el-select v-model="currentModel" class="w-60">
+                <el-option
+                  v-for="option in modelOptions"
+                  :key="option.value"
+                  :label="option.label"
+                  :value="option.value"
+                ></el-option>
+              </el-select>
+            </div>
+          </div>
+        </template>
+        
+        <el-form :model="predictionSettings" label-width="120px" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <el-form-item label="事件选择:">
+            <el-select v-model="predictionSettings.eventId" placeholder="选择事件" class="w-full">
               <el-option
-                v-for="option in modelOptions"
+                v-for="option in eventOptions"
                 :key="option.value"
                 :label="option.label"
                 :value="option.value"
               ></el-option>
             </el-select>
-          </div>
+          </el-form-item>
+          
+          <el-form-item label="预测时间窗口:">
+            <div class="slider-with-labels">
+              <el-slider
+                v-model="predictionSettings.timeWindow"
+                :min="3"
+                :max="30"
+                :step="1"
+                :format-tooltip="(val) => `${val}天`"
+                show-stops
+                :marks="{3: '3天', 7: '7天', 14: '14天', 30: '30天'}"
+              ></el-slider>
+            </div>
+          </el-form-item>
+          
+          <el-form-item label="置信区间:">
+            <el-select v-model="predictionSettings.confidenceInterval" class="w-full">
+              <el-option :value="0.9" label="90%"></el-option>
+              <el-option :value="0.95" label="95%"></el-option>
+              <el-option :value="0.99" label="99%"></el-option>
+            </el-select>
+          </el-form-item>
+          
+          <el-form-item label="包含历史数据:">
+            <el-switch 
+              v-model="predictionSettings.includeHistorical"
+              active-text="开启"
+              inactive-text="关闭"
+              inline-prompt
+            ></el-switch>
+          </el-form-item>
+          
+          <el-form-item label="包含相关事件:">
+            <el-switch 
+              v-model="predictionSettings.includeRelatedEvents"
+              active-text="开启"
+              inactive-text="关闭"
+              inline-prompt
+            ></el-switch>
+          </el-form-item>
+        </el-form>
+        
+        <div class="flex justify-center mt-6">
+          <el-button type="primary" size="large" @click="runPrediction" :loading="isPredicting" class="w-40">
+            运行预测
+          </el-button>
         </div>
+        
+        <!-- 预测进度条 -->
+        <div v-if="isPredicting" class="mt-4">
+          <div class="text-center mb-2">正在运行预测分析...</div>
+          <el-progress :percentage="predictionProgress" :format="(p) => `${p}%`" :stroke-width="20"></el-progress>
+        </div>
+      </el-card>
+      
+      <!-- 预测结果区域 -->
+      <template v-if="predictionComplete">
+        <!-- 预测结果概述 -->
+        <el-card class="mb-6 result-summary-card" :class="{ 'dark:bg-dark-light': true }">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div class="result-item">
+              <div class="text-gray-500 dark:text-gray-400 mb-1">当前极化指数</div>
+              <div class="text-3xl font-bold">{{ predictionResult.baselinePolarization.toFixed(1) }}</div>
+            </div>
+            
+            <div class="result-item">
+              <div class="text-gray-500 dark:text-gray-400 mb-1">预测极化峰值</div>
+              <div class="text-3xl font-bold text-red-500">{{ predictionResult.predictedPolarization.toFixed(1) }}</div>
+            </div>
+            
+            <div class="result-item">
+              <div class="text-gray-500 dark:text-gray-400 mb-1">预测趋势</div>
+              <div class="flex items-center">
+                <span class="text-xl font-bold mr-2">{{ getTrendLabel(predictionResult.trend) }}</span>
+                <el-icon color="#F56C6C" v-if="predictionResult.trend === 'increasing'"><ArrowUp /></el-icon>
+                <el-icon color="#67C23A" v-else-if="predictionResult.trend === 'decreasing'"><ArrowDown /></el-icon>
+                <el-icon color="#909399" v-else><DArrowRight /></el-icon>
+              </div>
+            </div>
+            
+            <div class="result-item">
+              <div class="text-gray-500 dark:text-gray-400 mb-1">预计稳定时间</div>
+              <div class="text-xl font-bold">{{ predictionResult.timeToStabilize }} 天</div>
+            </div>
+          </div>
+        </el-card>
+        
+        <!-- 预测图表区域 -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <!-- 趋势预测图 -->
+          <el-card class="chart-card" :class="{ 'dark:bg-dark-light': true }">
+            <div id="prediction-chart" class="chart-container"></div>
+          </el-card>
+          
+          <!-- 影响因素图 -->
+          <el-card class="chart-card" :class="{ 'dark:bg-dark-light': true }">
+            <div id="factors-chart" class="chart-container"></div>
+          </el-card>
+          
+          <!-- 不确定性分析图 -->
+          <el-card class="chart-card" :class="{ 'dark:bg-dark-light': true }">
+            <div id="uncertainty-chart" class="chart-container"></div>
+          </el-card>
+          
+          <!-- 比较分析图 -->
+          <el-card class="chart-card" :class="{ 'dark:bg-dark-light': true }">
+            <div id="comparative-chart" class="chart-container"></div>
+          </el-card>
+        </div>
+        
+        <!-- 预测分析报告 -->
+        <el-card class="prediction-report-card" :class="{ 'dark:bg-dark-light': true }">
+          <template #header>
+            <div class="flex justify-between items-center">
+              <span class="text-lg font-bold">预测分析报告</span>
+              <div>
+                <el-button type="primary" icon="Printer" plain class="mr-2">打印报告</el-button>
+                <el-button type="success" icon="Download" plain>导出数据</el-button>
+              </div>
+            </div>
+          </template>
+          
+          <div class="report-content">
+            <h3 class="text-xl font-bold mb-4">分析结论</h3>
+            <p class="mb-6 text-gray-700 dark:text-gray-300">
+              根据LSTM神经网络模型的预测结果，该事件的群体极化程度将在未来7天内继续上升，从当前的8.2上升到9.4，并在两周后趋于稳定。预测的可信度为87%，主要影响因素包括媒体报道强度和意见领袖的影响。
+            </p>
+            
+            <h3 class="text-xl font-bold mb-4">风险评估</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <el-card shadow="hover" class="risk-card bg-red-50 dark:bg-red-900/20">
+                <h4 class="text-lg font-bold mb-2 text-red-600 dark:text-red-400">高风险因素</h4>
+                <ul class="list-disc pl-5 text-gray-700 dark:text-gray-300">
+                  <li>社交媒体持续发酵</li>
+                  <li>相关利益方积极介入</li>
+                  <li>信息来源高度分化</li>
+                </ul>
+              </el-card>
+              
+              <el-card shadow="hover" class="risk-card bg-yellow-50 dark:bg-yellow-900/20">
+                <h4 class="text-lg font-bold mb-2 text-yellow-600 dark:text-yellow-400">中度风险因素</h4>
+                <ul class="list-disc pl-5 text-gray-700 dark:text-gray-300">
+                  <li>事件本身的模糊性</li>
+                  <li>官方回应不及时</li>
+                  <li>相关政策不明确</li>
+                </ul>
+              </el-card>
+              
+              <el-card shadow="hover" class="risk-card bg-green-50 dark:bg-green-900/20">
+                <h4 class="text-lg font-bold mb-2 text-green-600 dark:text-green-400">缓解因素</h4>
+                <ul class="list-disc pl-5 text-gray-700 dark:text-gray-300">
+                  <li>专家解读澄清事实</li>
+                  <li>主流媒体客观报道</li>
+                  <li>社会关注度逐渐转移</li>
+                </ul>
+              </el-card>
+            </div>
+            
+            <h3 class="text-xl font-bold mb-4">干预建议</h3>
+            <div class="mb-6 text-gray-700 dark:text-gray-300">
+              <p class="mb-2">基于预测结果，建议采取以下干预措施来缓解群体极化现象：</p>
+              <ol class="list-decimal pl-5">
+                <li>加强信息透明度，及时发布官方权威信息</li>
+                <li>鼓励多元化讨论，避免信息茧房效应</li>
+                <li>邀请专业人士进行客观解读和分析</li>
+                <li>密切监控极端言论，及时引导舆论走向</li>
+                <li>建立跨平台统一的信息发布机制</li>
+              </ol>
+            </div>
+          </div>
+        </el-card>
       </template>
       
-      <el-form :model="predictionSettings" label-width="120px" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <el-form-item label="事件选择:">
-          <el-select v-model="predictionSettings.eventId" placeholder="选择事件" class="w-full">
-            <el-option
-              v-for="option in eventOptions"
-              :key="option.value"
-              :label="option.label"
-              :value="option.value"
-            ></el-option>
-          </el-select>
-        </el-form-item>
-        
-        <el-form-item label="预测时间窗口:">
-          <el-slider
-            v-model="predictionSettings.timeWindow"
-            :min="3"
-            :max="30"
-            :step="1"
-            :marks="{3: '3天', 7: '7天', 14: '14天', 30: '30天'}"
-          ></el-slider>
-        </el-form-item>
-        
-        <el-form-item label="置信区间:">
-          <el-select v-model="predictionSettings.confidenceInterval" class="w-full">
-            <el-option :value="0.9" label="90%"></el-option>
-            <el-option :value="0.95" label="95%"></el-option>
-            <el-option :value="0.99" label="99%"></el-option>
-          </el-select>
-        </el-form-item>
-        
-        <el-form-item label="包含历史数据:">
-          <el-switch v-model="predictionSettings.includeHistorical"></el-switch>
-        </el-form-item>
-        
-        <el-form-item label="包含相关事件:">
-          <el-switch v-model="predictionSettings.includeRelatedEvents"></el-switch>
-        </el-form-item>
-      </el-form>
-      
-      <div class="flex justify-center mt-6">
-        <el-button type="primary" size="large" @click="runPrediction" :loading="isPredicting" class="w-40">
-          运行预测
-        </el-button>
-      </div>
-      
-      <!-- 预测进度条 -->
-      <div v-if="isPredicting" class="mt-4">
-        <div class="text-center mb-2">正在运行预测分析...</div>
-        <el-progress :percentage="predictionProgress" :format="(p) => `${p}%`" :stroke-width="20"></el-progress>
-      </div>
-    </el-card>
-    
-    <!-- 预测结果区域 -->
-    <template v-if="predictionComplete">
-      <!-- 预测结果概述 -->
-      <el-card class="mb-6 result-summary-card" :class="{ 'dark:bg-dark-light': true }">
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div class="result-item">
-            <div class="text-gray-500 dark:text-gray-400 mb-1">当前极化指数</div>
-            <div class="text-3xl font-bold">{{ predictionResult.baselinePolarization.toFixed(1) }}</div>
-          </div>
-          
-          <div class="result-item">
-            <div class="text-gray-500 dark:text-gray-400 mb-1">预测极化峰值</div>
-            <div class="text-3xl font-bold text-red-500">{{ predictionResult.predictedPolarization.toFixed(1) }}</div>
-          </div>
-          
-          <div class="result-item">
-            <div class="text-gray-500 dark:text-gray-400 mb-1">预测趋势</div>
-            <div class="flex items-center">
-              <span class="text-xl font-bold mr-2">{{ getTrendLabel(predictionResult.trend) }}</span>
-              <el-icon color="#F56C6C" v-if="predictionResult.trend === 'increasing'"><ArrowUp /></el-icon>
-              <el-icon color="#67C23A" v-else-if="predictionResult.trend === 'decreasing'"><ArrowDown /></el-icon>
-              <el-icon color="#909399" v-else><DArrowRight /></el-icon>
-            </div>
-          </div>
-          
-          <div class="result-item">
-            <div class="text-gray-500 dark:text-gray-400 mb-1">预计稳定时间</div>
-            <div class="text-xl font-bold">{{ predictionResult.timeToStabilize }} 天</div>
-          </div>
-        </div>
+      <!-- 显示调试信息 -->
+      <el-card v-if="!predictionComplete" class="debug-card mt-4">
+        <h3 class="text-lg font-bold mb-2">调试信息</h3>
+        <p>请设置参数并点击"运行预测"按钮来查看预测结果</p>
+        <p>URL参数: {{ route.query }}</p>
+        <p>当前事件ID: {{ predictionSettings.eventId }}</p>
+        <p>当前预测状态: {{ isPredicting ? '预测中' : '未预测' }}</p>
       </el-card>
-      
-      <!-- 预测图表区域 -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <!-- 趋势预测图 -->
-        <el-card class="chart-card" :class="{ 'dark:bg-dark-light': true }">
-          <div id="prediction-chart" class="chart-container"></div>
-        </el-card>
-        
-        <!-- 影响因素图 -->
-        <el-card class="chart-card" :class="{ 'dark:bg-dark-light': true }">
-          <div id="factors-chart" class="chart-container"></div>
-        </el-card>
-        
-        <!-- 不确定性分析图 -->
-        <el-card class="chart-card" :class="{ 'dark:bg-dark-light': true }">
-          <div id="uncertainty-chart" class="chart-container"></div>
-        </el-card>
-        
-        <!-- 比较分析图 -->
-        <el-card class="chart-card" :class="{ 'dark:bg-dark-light': true }">
-          <div id="comparative-chart" class="chart-container"></div>
-        </el-card>
-      </div>
-      
-      <!-- 预测分析报告 -->
-      <el-card class="prediction-report-card" :class="{ 'dark:bg-dark-light': true }">
-        <template #header>
-          <div class="flex justify-between items-center">
-            <span class="text-lg font-bold">预测分析报告</span>
-            <div>
-              <el-button type="primary" icon="Printer" plain class="mr-2">打印报告</el-button>
-              <el-button type="success" icon="Download" plain>导出数据</el-button>
-            </div>
-          </div>
-        </template>
-        
-        <div class="report-content">
-          <h3 class="text-xl font-bold mb-4">分析结论</h3>
-          <p class="mb-6 text-gray-700 dark:text-gray-300">
-            根据LSTM神经网络模型的预测结果，该事件的群体极化程度将在未来7天内继续上升，从当前的8.2上升到9.4，并在两周后趋于稳定。预测的可信度为87%，主要影响因素包括媒体报道强度和意见领袖的影响。
-          </p>
-          
-          <h3 class="text-xl font-bold mb-4">风险评估</h3>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <el-card shadow="hover" class="risk-card bg-red-50 dark:bg-red-900/20">
-              <h4 class="text-lg font-bold mb-2 text-red-600 dark:text-red-400">高风险因素</h4>
-              <ul class="list-disc pl-5 text-gray-700 dark:text-gray-300">
-                <li>社交媒体持续发酵</li>
-                <li>相关利益方积极介入</li>
-                <li>信息来源高度分化</li>
-              </ul>
-            </el-card>
-            
-            <el-card shadow="hover" class="risk-card bg-yellow-50 dark:bg-yellow-900/20">
-              <h4 class="text-lg font-bold mb-2 text-yellow-600 dark:text-yellow-400">中度风险因素</h4>
-              <ul class="list-disc pl-5 text-gray-700 dark:text-gray-300">
-                <li>事件本身的模糊性</li>
-                <li>官方回应不及时</li>
-                <li>相关政策不明确</li>
-              </ul>
-            </el-card>
-            
-            <el-card shadow="hover" class="risk-card bg-green-50 dark:bg-green-900/20">
-              <h4 class="text-lg font-bold mb-2 text-green-600 dark:text-green-400">缓解因素</h4>
-              <ul class="list-disc pl-5 text-gray-700 dark:text-gray-300">
-                <li>专家解读澄清事实</li>
-                <li>主流媒体客观报道</li>
-                <li>社会关注度逐渐转移</li>
-              </ul>
-            </el-card>
-          </div>
-          
-          <h3 class="text-xl font-bold mb-4">干预建议</h3>
-          <div class="mb-6 text-gray-700 dark:text-gray-300">
-            <p class="mb-2">基于预测结果，建议采取以下干预措施来缓解群体极化现象：</p>
-            <ol class="list-decimal pl-5">
-              <li>加强信息透明度，及时发布官方权威信息</li>
-              <li>鼓励多元化讨论，避免信息茧房效应</li>
-              <li>邀请专业人士进行客观解读和分析</li>
-              <li>密切监控极端言论，及时引导舆论走向</li>
-              <li>建立跨平台统一的信息发布机制</li>
-            </ol>
-          </div>
-        </div>
-      </el-card>
-    </template>
+    </div>
   </div>
 </template>
 
 <style scoped>
-.chart-container {
-  height: 350px;
+.prediction-trend-container {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+.prediction-trend {
+  width: 100%;
 }
 
 .settings-card, 
 .result-summary-card, 
 .chart-card, 
-.prediction-report-card {
+.prediction-report-card,
+.debug-card {
   transition: all 0.3s;
+  width: 100%;
+  margin-bottom: 20px;
 }
 
 .result-item {
@@ -662,5 +820,48 @@ function getTrendLabel(trend: string): string {
 
 .risk-card {
   transition: all 0.3s;
+}
+
+.slider-with-labels {
+  padding: 0 8px;
+}
+
+/* 修复开关组件的样式 */
+.el-switch__label {
+  color: var(--el-color-primary) !important;
+}
+
+.el-switch.is-checked .el-switch__core {
+  border-color: var(--el-color-primary) !important;
+  background-color: var(--el-color-primary) !important;
+}
+
+/* 确保内容正确显示 */
+.chart-container {
+  height: 350px;
+  width: 100%;
+  display: block;
+  position: relative;
+}
+
+/* 修复居中问题，避免使用全局选择器 */
+.el-main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* 确保表单元素宽度正确 */
+.el-form-item {
+  width: 100%;
+}
+
+.el-form-item__content {
+  width: 100%;
+}
+
+/* 确保卡片内容居中 */
+.el-card__body {
+  width: 100%;
 }
 </style> 

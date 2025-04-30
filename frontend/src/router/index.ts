@@ -24,12 +24,12 @@ const routes: RouteRecordRaw[] = [
         }
       },
       {
-        path: 'events/:id',
-        name: 'EventDetail',
-        component: () => import('../views/EventDetail.vue'),
+        path: 'monitor',
+        name: 'RealTimeMonitor',
+        component: () => import('../views/RealTimeMonitor.vue'),
         meta: {
-          title: '事件详情分析',
-          icon: 'InfoFilled'
+          title: '实时监控',
+          icon: 'Monitor'
         }
       },
       {
@@ -42,12 +42,12 @@ const routes: RouteRecordRaw[] = [
         }
       },
       {
-        path: 'monitor',
-        name: 'RealTimeMonitor',
-        component: () => import('../views/RealTimeMonitor.vue'),
+        path: 'events/:id',
+        name: 'EventDetail',
+        component: () => import('../views/EventDetail.vue'),
         meta: {
-          title: '实时监控',
-          icon: 'Monitor'
+          title: '事件详情分析',
+          icon: 'InfoFilled'
         }
       }
     ]

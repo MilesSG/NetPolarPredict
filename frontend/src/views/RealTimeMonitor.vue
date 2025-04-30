@@ -546,7 +546,7 @@ function updateMonitoringSettings() {
 </script>
 
 <template>
-  <div class="real-time-monitor">
+  <div class="real-time-monitor-container w-full">
     <!-- 控制面板 -->
     <el-card class="mb-6 control-panel" :class="{ 'dark:bg-dark-light': true }">
       <div class="flex flex-col md:flex-row justify-between items-center">
@@ -797,6 +797,10 @@ function updateMonitoringSettings() {
 </template>
 
 <style scoped>
+.real-time-monitor-container {
+  width: 100%;
+}
+
 .chart-container {
   height: 350px;
 }
