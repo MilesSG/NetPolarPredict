@@ -3,7 +3,8 @@
 ## 📋 项目介绍
 
 NetPolarPredict是一个基于人工智能的网络极化预测系统，旨在监测、分析和预测社交媒体平台上的极化趋势。通过对多平台社交媒体数据的实时监控，系统可以及时捕捉极化事件，并提供未来趋势预测。
-![image](https://github.com/user-attachments/assets/c0585594-d656-40ef-a916-6c5564da99b9)
+![image](https://github.com/user-attachments/assets/ecf67468-79b0-4cb3-b922-dc662efdf383)
+
 ![image](https://github.com/user-attachments/assets/3e63a65d-99d7-49bf-b833-1616ea19ed6d)
 ![image](https://github.com/user-attachments/assets/d5bf4469-a32b-4f57-b8c4-6aec24f046e6)
 
